@@ -5,7 +5,7 @@ on:
     branches: [ main ]
 
 env:
-  IMAGE_NAME: prameshwar884/my-flask-app:latest
+  IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/my-flask-app:latest
 
 jobs:
   deploy:
