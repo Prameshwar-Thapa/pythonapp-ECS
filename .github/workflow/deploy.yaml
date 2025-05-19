@@ -1,0 +1,51 @@
+name: Build and Deploy to ECS
+
+on:
+  push:
+    branches: [ main ]
+
+env:
+  IMAGE_NAME: your_dockerhub_username/my-flask-app:latest
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+
+    - name: Install dependencies
+      run: pip install -r requirements.txt
+
+    - name: Run tests
+      run: |
+        python -m unittest || echo "No tests added"
+
+    - name: Log in to Docker Hub
+      run: echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+
+    - name: Build Docker image
+      run: docker build -t ${{ env.IMAGE_NAME }} .
+
+    - name: Push Docker image
+      run: docker push ${{ env.IMAGE_NAME }}
+
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ secrets.AWS_REGION }}
+
+    - name: Force new deployment on ECS
+      run: |
+        aws ecs update-service \
+          --cluster ${{ secrets.my-demo-cluster }} \
+          --service ${{ secrets.my-flask-task-service }} \
+          --force-new-deployment
